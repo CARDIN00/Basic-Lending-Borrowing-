@@ -61,6 +61,8 @@ contract BasicLending{
     }
 
     
+
+    
     // COLLATERAL FUNCTIONS
     function calculateColletaral(uint BorrowAmount)internal view returns (uint) {
         return  (BorrowAmount * ColleteralRate) /100;
@@ -105,6 +107,34 @@ contract BasicLending{
         uint amount = TotalFee;
         require(amount> 0,"Nothing pending");
         payable(Owner).transfer(amount);
+    } 
+    
+    function getHealthFactor(address borrower) public view returns(uint){
+        uint collateralValue = colleteralBalance[borrower]; 
+        uint borrowedValue = Borrowed[borrower];
+
+        if (borrowedValue == 0){
+            return type(uint).max;
+        }
+
+        uint requiredCollateral = calculateColletaral(borrowedValue);
+        return (collateralValue * 1e18) / requiredCollateral;
+    }
+
+    function liquidate(address borrower)public{
+        uint healthFactor = getHealthFactor(borrower);
+        require(healthFactor < 1e18,"No further liquidation needed");
+
+        uint collateralSeizable = colleteralBalance[borrower];
+        uint debt = Borrowed[borrower];
+
+        collateralSeizable = 0;
+        debt  = 0;
+
+        EthPool -= collateralSeizable;
+        payable (msg.sender).transfer(collateralSeizable);
+
+        
     }
 
      
